@@ -25,7 +25,7 @@ def load_data(dir_path):
     data = pd.concat(dataframes)
     return data
     
-def all_phrases(content):
+def all_phrases_of_multiple_documents(content):
     phrase_list = []
     print("Extracting sentences")
     N = len(content)
@@ -38,7 +38,68 @@ def all_phrases(content):
             phrase_list.append((p, i))
     phrase_list = np.array(phrase_list)
     return phrase_list[:, 0], phrase_list[:, 1]
-    
+
+def all_phrases_of_one_document(revue):
+    phrase_list = []
+    print("Extracting sentences")
+    phrases = sent_tokenize(revue)
+    # qc info des ordre des phrases doit etre ajouter
+    for j,p in enumerate(phrases):
+        phrase_list.append((p, j))
+    phrase_list = np.array(phrase_list)
+    return phrase_list
+
+
 def print_progress(i):
     sys.stdout.write("\r%d%%" % i)
     sys.stdout.flush()
+    
+
+# load documents
+def load_doc(filename):
+    file = open(filename, encoding='utf-8')
+    text = file.read()
+    file.close()
+    return text
+ 
+def load_stories_tgz(filename):
+    stories = []
+   
+    tar = tarfile.open(filename, "r:gz")
+    for member in tar.getmembers():
+        f = tar.extractfile(member)
+        if f is not None:
+            # split into story and highlights
+            story, highlights = split_story(f.read().decode("utf-8") )
+            # store
+            stories.append({'story':story, 'highlights':highlights})
+   
+    return stories
+ 
+# split a document into news story and highlights
+def split_story(doc):
+    # find first highlight
+    index = doc.find('@highlight')
+    # split into story and highlights
+    story, highlights = doc[:index], doc[index:].split('@highlight')
+    # strip extra white space around each highlight
+    highlights = [h.strip() for h in highlights if len(h) > 0]
+    return story, highlights
+ 
+# load all stories in a directory
+def load_stories(directory, N=-1):
+    stories = list()
+    for name in os.listdir(directory):
+        filename = directory + '/' + name
+        # load document
+        doc = load_doc(filename)
+        story, highlights = split_story(doc)
+        stories.append({'story':story, 'highlights':highlights})
+        if(N > 0 and len(stories) >= N):
+            break
+    dataframes = []
+    for example in stories:
+        df = pd.DataFrame({'X': example['story'], 'Y': [example['highlights']]})
+        dataframes.append(df)
+     
+    return pd.concat(dataframes)

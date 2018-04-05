@@ -75,7 +75,7 @@ class GraphBasedSummary:
         res = []
         res_len = 0
         i = 0
-        while(res_len < chars and i < len(sents)):
+        while(res_len < chars and i < len(df)):
             res.append((df["phrase"].loc[i], df["position"].loc[i]))
             res_len += len(df["phrase"].loc[i]) + 2
             i += 1
@@ -91,7 +91,7 @@ class GraphBasedSummary:
         
         df = pd.DataFrame({'phrase': self.phrases[:,0], 'position': self.phrases[:,1]})
         df['ranking'] = ranking
-        ordered = df.sort_values(by='ranking', ascending=False)['phrase']
+        ordered = df.sort_values(by='ranking', ascending=False)#['phrase']
         resume = self.take_paragraphs_until(ordered, summary_length)
         ##
         ## post processing
