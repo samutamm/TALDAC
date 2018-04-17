@@ -17,8 +17,28 @@ class GraphBasedSummary:
     def __init__(self,phrases):
         assert len(phrases) < 400
         self.phrases = phrases
+        self.dumping_factor = 0.85
         
+    def power_iteration(self,A, num_simulations):
+        b_k = np.random.rand(A.shape[0])
+        for _ in range(num_simulations):
+            b_k1 = np.dot(A, b_k)
+            b_k1_norm = np.linalg.norm(b_k1)
+            b_k = b_k1 / b_k1_norm
+        return b_k
+        
+    def lex_rank(self, matrix, threshold):
+        #res = 1 - self.dumping_factor
+        #res += self.dumping_factor * sum([for v in adj_matrix_line])
+        matrix[np.where(matrix < threshold)] = 0
+        return self.power_iteration(matrix, 100)
+        
+    def get_ranking(self,matrix, threshold):
+        if self.ranking_method=="lexrank":
+            return self.lex_rank(matrix, threshold)
 
+        return [np.count_nonzero(ligne >= threshold) for ligne in matrice]
+        
     def sent_cos(self, w1,w2):
         words = set()
         for w in w1:
@@ -87,13 +107,9 @@ class GraphBasedSummary:
     def summarize(self, seuil, summary_length=50):
         matrice = self.creer_matrice_adjance(self.phrases[:, 0])
         print("Ranking")
-        ranking = [np.count_nonzero(ligne >= seuil) for ligne in matrice]
+        ranking = self.get_ranking(matrice, seuil)
         
         df = pd.DataFrame({'phrase': self.phrases[:,0], 'position': self.phrases[:,1]})
         df['ranking'] = ranking
         ordered = df.sort_values(by='ranking', ascending=False)#['phrase']
-        resume = self.take_paragraphs_until(ordered, summary_length)
-        ##
-        ## post processing
-        ##
-        return resume
+        return ranking, self.take_paragraphs_until(ordered, summary_length)
