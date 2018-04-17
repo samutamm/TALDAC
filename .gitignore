@@ -3,3 +3,5 @@ __pycache__
 .ipynb_checkpoints
 *.story
 sandbox.ipynb
+.DS_Store
+*.csv
