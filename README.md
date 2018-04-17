@@ -6,9 +6,9 @@ Dataset cnn_stories from https://cs.nyu.edu/~kcho/DMQA/
 Execute run_rouge.py to calcul the rouge score between machine made summaries and human made summaries.
 
 ```
-./run_rouge.py data/my_generated_resume.csv
+./run_rouge.py data/my_generated_summaries.csv
 ```
-where file my_generated_resume.csv should contain (at least) two columns:
+where file my_generated_summaries.csv should contain (at least) two columns:
 
 | Column        | Content           |
 | ------------- |:-------------:|
