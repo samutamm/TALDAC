@@ -5,3 +5,4 @@ __pycache__
 sandbox.ipynb
 .DS_Store
 *.csv
+*.png

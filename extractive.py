@@ -8,7 +8,7 @@ Created on Thu Feb 22 14:36:41 2018
 import numpy as np
 from GraphBasedSummary import GraphBasedSummary
 from utils import load_data, all_phrases_of_one_document, load_stories
-from metrics import get_rouge_scores
+from PyRouge.PyRouge.pyrouge import Rouge
 import matplotlib.pyplot as plt
 
 
@@ -19,10 +19,11 @@ def create_resume(story, threshold = 0.5, summary_length=300):
 stories = load_stories('data/stories/', N=100)
 length = stories['X'].apply(len)
 stories = stories[np.logical_and(length > 50, 9000 > length)]
-stories = stories.sample(10)
+stories = stories.sample(30)
 rouge = Rouge()
 
 stories['summary'] = ""
+threshold = 0.5
 summary_length = 100
 precisions = []
 recalls = []
@@ -34,13 +35,13 @@ for s in s_candidates:
     f_scores_tmp = []
     for i in range(stories.shape[0]):
         example = stories.iloc[i]
-        resume = create_resume(example['X'], threshold=s, summary_length=summary_length)
+        resume = create_resume(example['X'], threshold=threshold, summary_length=summary_length)
         reference = ". ".join(example['Y']) + '.'
-        r_scores = get_rouge_scores(resume, reference)
+        r_scores = rouge.rouge_l([resume], [reference])
 
-        precisions_tmp.append(r_scores['p'])
-        recalls_tmp.append(r_scores['r'])
-        f_scores_tmp.append(r_scores['f'])
+        precisions_tmp.append(r_scores[0])
+        recalls_tmp.append(r_scores[1])
+        f_scores_tmp.append(r_scores[2])
 
         stories['summary'].iloc[i] = resume
         stories['Y'].iloc[i] = reference
@@ -54,5 +55,6 @@ plt.figure()
 plt.plot(s_candidates,precisions, label="Precision")
 plt.plot(s_candidates,recalls, label="Recall")
 plt.plot(s_candidates,f_scores, label="F-score")
+plt.xlabel('S')
 plt.savefig("s_optimal.png")
 #stories.to_csv('data/stories_with_summaries.csv')
