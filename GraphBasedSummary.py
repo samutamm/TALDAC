@@ -33,8 +33,8 @@ class GraphBasedSummary:
         matrix[np.where(matrix < threshold)] = 0
         return self.power_iteration(matrix, 100)
         
-    def get_ranking(self,matrix, threshold):
-        if self.ranking_method=="lexrank":
+    def get_ranking(self,matrix, threshold, ranking_method):
+        if ranking_method=="lexrank":
             return self.lex_rank(matrix, threshold)
 
         return [np.count_nonzero(ligne >= threshold) for ligne in matrice]
@@ -73,13 +73,12 @@ class GraphBasedSummary:
     
     def similarity(self, s1,s2):
         a = 0.9
-        w1 = np.array(word_tokenize(s1))
-        w2 = np.array(word_tokenize(s2))
+        w1 = np.array(word_tokenize(s1.lower()))
+        w2 = np.array(word_tokenize(s2.lower()))
         return a * self.sent_cos(w1,w2) + (1 - a) * self.LCS(w1,w2)
     
     def creer_matrice_adjance(self, phrases):
         N = len(phrases)
-        print("Create the distance matrix of size : ", N)
         matrice = np.zeros((N,N))
         for i in range(N):
             for j in range(N):
@@ -104,12 +103,11 @@ class GraphBasedSummary:
         ordered_resume = resume.sort_values(by='position', ascending=True)['phrase']
         return ". ".join(ordered_resume.values)
     
-    def summarize(self, seuil, summary_length=50):
+    def summarize(self, seuil, ranking_method, summary_length=50):
         matrice = self.creer_matrice_adjance(self.phrases[:, 0])
-        print("Ranking")
-        ranking = self.get_ranking(matrice, seuil)
+        ranking = self.get_ranking(matrice, seuil, ranking_method)
         
         df = pd.DataFrame({'phrase': self.phrases[:,0], 'position': self.phrases[:,1]})
         df['ranking'] = ranking
         ordered = df.sort_values(by='ranking', ascending=False)#['phrase']
-        return ranking, self.take_paragraphs_until(ordered, summary_length)
+        return self.take_paragraphs_until(ordered, summary_length)
