@@ -19,27 +19,48 @@ class GraphBasedSummary:
         self.phrases = phrases
         self.dumping_factor = 0.85
         
-    def power_iteration(self,A, num_simulations):
-        b_k = np.random.rand(A.shape[0])
-        for _ in range(num_simulations):
-            b_k1 = np.dot(A, b_k)
-            b_k1_norm = np.linalg.norm(b_k1)
-            b_k = b_k1 / b_k1_norm
-        return b_k
+    def power_iteration(self,N,M, num_simulations):
+        p_last = 1/N * np.ones(N)
+        p = p_last
+        t = 0
+        while True:
+            t += 1
+            p = M.T.dot(p_last)
+            delta = np.linalg.norm(p - p_last)
+            p_last = p
+            if delta < 1e-10 or t > num_simulations:
+                break
+        return p
         
     def lex_rank(self, matrix, threshold):
-        #res = 1 - self.dumping_factor
-        #res += self.dumping_factor * sum([for v in adj_matrix_line])
-        matrix[np.where(matrix < threshold)] = 0
-        return self.power_iteration(matrix, 100)
+        N = matrix.shape[0]
+        degree = np.zeros(N)
+        for i in range(N):
+            for j in range(N):
+                if matrix[i,j] > threshold:
+                    matrix[i,j] = 1
+                    degree[i] += 1
+                else:
+                    matrix[i,j] = 0
+        for i in range(N):
+            for j in range(N):
+                matrix[i,j] = matrix[i,j] / degree[i]
+                
+        #matrix[np.where(matrix < threshold)] = 0
+        return self.power_iteration(N,matrix, 100)
         
-    def get_ranking(self,matrix, threshold, ranking_method):
-        if ranking_method=="lexrank":
+    def get_ranking(self, threshold):
+        matrix = self.creer_matrice_adjance(self.phrases[:, 0])
+        if self.ranking_method=="lexrank":
             return self.lex_rank(matrix, threshold)
 
-        return [np.count_nonzero(ligne >= threshold) for ligne in matrice]
+        return [np.count_nonzero(ligne >= threshold) for ligne in matrix]
         
     def sent_cos(self, w1,w2):
+        """
+        :w1: np.array or words
+        :w2: np.array or words
+        """
         words = set()
         for w in w1:
             words.add(w)
@@ -75,7 +96,10 @@ class GraphBasedSummary:
         a = 0.9
         w1 = np.array(word_tokenize(s1.lower()))
         w2 = np.array(word_tokenize(s2.lower()))
-        return a * self.sent_cos(w1,w2) + (1 - a) * self.LCS(w1,w2)
+        cosinus = self.sent_cos(w1,w2)
+        if self.ranking_method == "lexrank":
+            return cosinus
+        return a * cosinus + (1 - a) * self.LCS(w1,w2)
     
     def creer_matrice_adjance(self, phrases):
         N = len(phrases)
@@ -104,9 +128,9 @@ class GraphBasedSummary:
         return ". ".join(ordered_resume.values)
     
     def summarize(self, seuil, ranking_method, summary_length=50):
-        matrice = self.creer_matrice_adjance(self.phrases[:, 0])
-        ranking = self.get_ranking(matrice, seuil, ranking_method)
-        
+        self.ranking_method = ranking_method
+        ranking = self.get_ranking(seuil)
+        #print(ranking)
         df = pd.DataFrame({'phrase': self.phrases[:,0], 'position': self.phrases[:,1]})
         df['ranking'] = ranking
         ordered = df.sort_values(by='ranking', ascending=False)#['phrase']
